@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Announcement</title>
+</head>
+<body>
+    <h2>Train Announcement</h2>
+    <label for="stationName">Enter Station Name:</label>
+    <input type="text" id="stationNameInput" placeholder="Enter station name">
+    <button onclick="playAnnouncement()">Play Announcement</button>
+
+    <script>
+        function replaceDetailsWithInfo(message) {
+            return message.replace(/More details(.*?)(<a.*?<\/a>)/g, "More information and the impact on your journey can be found at nationalrail.co.uk/disruption.");
+        }
+
+        function playAnnouncement() {
+            var userInput = document.getElementById('stationNameInput').value.trim().toLowerCase();
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', 'https://national-rail-api.davwheat.dev/staffdepartures/' + userInput + '?expand=true', true);
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    var data = JSON.parse(xhr.responseText);
+                    var stationName = data.locationName;
+                    var messages = data.nrccMessages;
+                    if (messages === null || messages.length === 0) {
+                        var time = new Date().toLocaleTimeString('en-US', {hour: 'numeric', minute: 'numeric', hour12: true});
+                        var fallbackMessage = "If you see something that doesn't look right, speak to staff or text the British Transport Police on 6 1 0 1 6. See it, say it, sorted.";
+                        var announcement = "Customer Information from " + stationName + " station at " + time + ". " + fallbackMessage;
+                        speakText(announcement);
+                    } else {
+                        var message = messages[0].xhtmlMessage || "If you see something that doesn't look right, speak to staff or text the British Transport Police on 6 1 0 1 6. See it, say it, sorted.";
+                        message = replaceDetailsWithInfo(message);
+                        var time = new Date().toLocaleTimeString('en-US', {hour: 'numeric', minute: 'numeric', hour12: true});
+                        var announcement = "Customer Information from " + stationName + " station at " + time + ". " + message;
+                        speakText(announcement);
+                    }
+                } else {
+                    console.error('Request failed. Status: ' + xhr.status);
+                }
+            };
+            xhr.send();
+        }
+
+function speakText(text) {
+    var speech = new SpeechSynthesisUtterance();
+    speech.text = text;
+    speech.lang = 'en-GB';
+    speech.rate = 1;
+    speech.pitch = 1;
+    speech.volume = 1;
+    window.speechSynthesis.speak(speech);
+}
+
+    </script>
+</body>
+</html>
