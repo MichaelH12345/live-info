@@ -10,6 +10,7 @@
     <label for="stationName">Enter Station Name:</label>
     <input type="text" id="stationNameInput" placeholder="Enter station name">
     <button onclick="playAnnouncement()">Play Announcement</button>
+    <div id="countdown"></div>
 
     <script>
         function replaceDetailsWithInfo(message) {
@@ -35,7 +36,7 @@
                         message = replaceDetailsWithInfo(message);
                         var time = new Date().toLocaleTimeString('en-US', {hour: 'numeric', minute: 'numeric', hour12: true});
                         var announcement = "Customer Information from " + stationName + " station at " + time + ". " + message;
-                        speakText(announcement);
+                        playChimeAndAnnouncement(announcement);
                     }
                 } else {
                     console.error('Request failed. Status: ' + xhr.status);
@@ -44,16 +45,36 @@
             xhr.send();
         }
 
-function speakText(text) {
-    var speech = new SpeechSynthesisUtterance();
-    speech.text = text;
-    speech.lang = 'en-GB';
-    speech.rate = 1;
-    speech.pitch = 1;
-    speech.volume = 1;
-    window.speechSynthesis.speak(speech);
-}
+        function speakText(text) {
+            var speech = new SpeechSynthesisUtterance();
+            speech.text = text;
+            speech.lang = 'en-GB';
+            speech.rate = 1;
+            speech.pitch = 1;
+            speech.volume = 1;
+            window.speechSynthesis.speak(speech);
+        }
 
+        function playChimeAndAnnouncement(announcement) {
+            var chimeAudio = new Audio('https://raw.githubusercontent.com/MichaelH12345/live-info/main/%23%20EBING.mp3');
+            chimeAudio.onended = function() {
+                speakText(announcement);
+                var countdownDiv = document.getElementById('countdown');
+                var timeLeft = 120; // 2 minutes in seconds
+                var countdownInterval = setInterval(function() {
+                    var minutes = Math.floor(timeLeft / 60);
+                    var seconds = timeLeft % 60;
+                    countdownDiv.innerHTML = "Next announcement in " + minutes + " minutes " + seconds + " seconds";
+                    timeLeft--;
+                    if (timeLeft < 0) {
+                        clearInterval(countdownInterval);
+                        countdownDiv.innerHTML = "";
+                        playAnnouncement();
+                    }
+                }, 1000); // 1 second in milliseconds
+            };
+            chimeAudio.play();
+        }
     </script>
 </body>
 </html>
