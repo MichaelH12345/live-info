@@ -17,33 +17,34 @@
             return message.replace(/More details(.*?)(<a.*?<\/a>)/g, "More information and the impact on your journey can be found at nationalrail.co.uk/disruption.");
         }
 
-        function playAnnouncement() {
-            var userInput = document.getElementById('stationNameInput').value.trim().toLowerCase();
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', 'https://national-rail-api.davwheat.dev/staffdepartures/' + userInput + '?expand=true', true);
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    var data = JSON.parse(xhr.responseText);
-                    var stationName = data.locationName;
-                    var messages = data.nrccMessages;
-                    if (messages === null || messages.length === 0) {
-                        var time = new Date().toLocaleTimeString('en-US', {hour: 'numeric', minute: 'numeric', hour12: true});
-                        var fallbackMessage = "If you see something that doesn't look right, speak to staff or text the British Transport Police on 6 1 0 1 6. See it, say it, sorted.";
-                        var announcement = "Customer Information from " + stationName + " station at " + time + ". " + fallbackMessage;
-                        speakText(announcement);
-                    } else {
-                        var message = messages[0].xhtmlMessage || "If you see something that doesn't look right, speak to staff or text the British Transport Police on 6 1 0 1 6. See it, say it, sorted.";
-                        message = replaceDetailsWithInfo(message);
-                        var time = new Date().toLocaleTimeString('en-US', {hour: 'numeric', minute: 'numeric', hour12: true});
-                        var announcement = "Customer Information from " + stationName + " station at " + time + ". " + message;
-                        playChimeAndAnnouncement(announcement);
-                    }
-                } else {
-                    console.error('Request failed. Status: ' + xhr.status);
-                }
-            };
-            xhr.send();
+function playAnnouncement() {
+    var userInput = document.getElementById('stationNameInput').value.trim().toLowerCase();
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://national-rail-api.davwheat.dev/staffdepartures/' + userInput + '?expand=true', true);
+    xhr.onload = function () {
+        if (xhr.status === 200) {
+            var data = JSON.parse(xhr.responseText);
+            var stationName = data.locationName;
+            var messages = data.nrccMessages;
+            if (messages === null || messages.length === 0) {
+                var time = new Date().toLocaleTimeString('en-US', {hour: 'numeric', minute: 'numeric', hour12: true});
+                var fallbackMessage = "If you see something that doesn't look right, speak to staff or text the British Transport Police on 6 1 0 1 6. See it, say it, sorted.";
+                var announcement = "Customer Information from " + stationName + " station at " + time + ". " + fallbackMessage;
+                speakText(announcement);
+                startCountdown(); // Start countdown after playing fallback message
+            } else {
+                var message = messages[0].xhtmlMessage || "If you see something that doesn't look right, speak to staff or text the British Transport Police on 6 1 0 1 6. See it, say it, sorted.";
+                message = replaceDetailsWithInfo(message);
+                var time = new Date().toLocaleTimeString('en-US', {hour: 'numeric', minute: 'numeric', hour12: true});
+                var announcement = "Customer Information from " + stationName + " station at " + time + ". " + message;
+                playChimeAndAnnouncement(announcement);
+            }
+        } else {
+            console.error('Request failed. Status: ' + xhr.status);
         }
+    };
+    xhr.send();
+}
 
         function speakText(text) {
             var speech = new SpeechSynthesisUtterance();
@@ -54,6 +55,21 @@
             speech.volume = 1;
             window.speechSynthesis.speak(speech);
         }
+        function startCountdown() {
+    var countdownDiv = document.getElementById('countdown');
+    var timeLeft = 120; // 2 minutes in seconds
+    var countdownInterval = setInterval(function() {
+        var minutes = Math.floor(timeLeft / 60);
+        var seconds = timeLeft % 60;
+        countdownDiv.innerHTML = "Next announcement in " + minutes + " minutes " + seconds + " seconds";
+        timeLeft--;
+        if (timeLeft < 0) {
+            clearInterval(countdownInterval);
+            countdownDiv.innerHTML = "";
+            playAnnouncement();
+        }
+    }, 1000); // 1 second in milliseconds
+}
 
         function playChimeAndAnnouncement(announcement) {
             var chimeAudio = new Audio('https://raw.githubusercontent.com/MichaelH12345/live-info/main/%23%20EBING.mp3');
